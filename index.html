@@ -275,7 +275,7 @@ switch(rand(3)) {
 	    case 0:
 		break;
 	   case 1:
-		this.note = this.min + rand(this.msx -  this.min);
+		this.note = this.min + rand(this.max -  this.min);
 	   case 2:
 		this.instrument.render(buffer,offset,scale[this.note],Math.random() < 0.5 ? r : 1.0 / r,vs[i]);
 }
