@@ -141,11 +141,11 @@ constructor(sampleRate,tone,sustain,vol,vibOn,cvName) {
 		return s / 2.0 / n;
 	}).setOutput([sampleRate]); */
 
-	/*
+	
 	this.madd = gpu.createKernel(function(nowBuffering,offset,xs,f) {
 		return nowBuffering[this.thread.x + offset] + xs[this.thread.x] * f;
 	}).setOutput([sampleRate]);
-	*/
+	
 
 				    
 	this.sampleRate = sampleRate;
