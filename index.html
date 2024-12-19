@@ -235,11 +235,16 @@ for(let i = 0;i < this.tones.length;++i) if(this.tones[i] > _max) _max = this.to
 for(let i = 0;i < this.tones.length;++i) if(this.tones[i] < _min) _min = this.tones[i];
 let min = 0;
 let max = range;
-if(range < 0)
-while(min > max - scale.length / 2) {
+//if(range < 0)
+	
+do {
 min = rand(scale.length);
 max = rand(scale.length);
-}
+}while(min > max - scale.length / 2);
+
+this.min = min;
+this.max = max;
+	
 for(let i = 0;i < this.tones.length;++i) this.tones[i] = Math.round((max - min) * (this.tones[i] - _min) / (_max - _min) + min);
 console.log(min + " / " + max);
 this.i = 0;
