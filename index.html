@@ -264,6 +264,7 @@ play(buffer,offset) {
 let vs = [1.2,0.8,0.9,0.8,1,0.8,0.9,0.8];
 let i = this.i % vs.length;
 
+	
 
 switch(rand(3)) {
 	    case 0:
@@ -273,8 +274,9 @@ switch(rand(3)) {
 	   case 2:
 		this.instrument.render(buffer,offset,scale[this.note],Math.random() < 0.5 ? r : 1.0 / r,vs[i]);
 }
-
 	
+
+	/*
 if(Math.random() < 0.125 + 0.125 * this.r) {
 let r = 0.25 * Math.random() + 1;
 //this.instrument.render(buffer,offset,scale[this.tones[this.index]],Math.random() < 0.5 ? r : 1.0 / r,vs[i]);
@@ -284,7 +286,7 @@ if(this.index >= this.tones.length) {
 this.index = 0;
 }
 }
-}
+}*/
 this.i += 1;
 }
 }
