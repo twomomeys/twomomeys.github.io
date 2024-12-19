@@ -180,7 +180,7 @@ render(buffer,offset,tone,sustain,vol) {
 	for(var channel = 0; channel < channels; channel++) {
 	var nowBuffering = buffer.getChannelData(channel);
 	var xs = this.waveGPU(this.xs,this.xs.length,this.rands,this.sampleRate,this.tone + tone,this.sustain * sustain,this.vibOn,1);
-	*/
+	
 	//var ys = this.fGPU(xs);
 	//let ys = xs;
 	//var imin = 200;
