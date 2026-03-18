@@ -1,0 +1,566 @@
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+
+<script src="gpu-browser.min.js"></script>
+</head>
+<body>
+the music Generator burn your fingers on the interesting honey Pott 
+they don't tell and they wanna know 
+	....
+	 sohn muss Urlaub 
+	.....
+	 Sie haben lustige Rechte 
+	....
+	 Ich bin auf müllrow 
+	....
+	 Die töten denen wegen der
+	.....
+	 Achtung satzbaugenerator 
+	....
+	 Speers Christmas trees ....
+	 Personalverhetzung bei man in the Mittel 
+	
+	<script>
+let myseed = 65000 * Math.random()
+let randcoeffs = []
+for(let i = 0;i < 5;++i) randcoeffs.push(Math.random())
+
+Math.random = function() {
+	let s = myseed
+	for(let i = 0;i < randcoeffs.length;++i) s += 65000 * randcoeffs[i] * Math.pow((Math.sin(myseed) + 1) / 2,i)
+	myseed = s % 65000
+	return myseed / 65000.0
+}
+
+//for(let i = 0;i < 100;++i) document.write(Math.random() + "<br>")
+/*
+let ___random = Math.random
+let randoms = new Float32Array(10000)
+for(let i = 0;i < randoms.length;++i) randoms[i] = ___random()
+
+let randomi = 0
+
+Math.random = function() {
+	return randoms[randomi++]
+}
+*/
+
+function initGPU() {
+	try {
+		return new window.GPU.GPU();
+	} catch (e) {
+		return new GPU();
+	}
+}
+
+
+let bads = []
+//let goods = [];
+
+	function mypow(x,y) {
+		return Math.sign(x) * Math.pow(Math.abs(x),y);
+	}
+	
+function clamp(x) {
+	if(x > 1) return 1
+	if(x < 0) return 0
+	return x
+}
+
+function nextsong() {
+    let song = new Float32Array(randoms.length);
+    for (let i = 0; i < randoms.length; ++i) {
+        song[i] = ___random();
+    }
+
+    if (bads.length > 0) {  // Länge prüfen, um den Block auszuführen
+        for (let iteration = 0; iteration < 100; ++iteration) {
+            let vsum = new Float32Array(randoms.length);
+			for(let i = 0;i < vsum.length;++i) vsum[i] = 0
+
+            bads.forEach((b, badIndex) => {
+                let v = new Float32Array(randoms.length);
+ 				for(let i = 0;i < v.length;++i) v[i] = 0
+				let sum = 0;
+
+                for (let i = 0; i < v.length; ++i) {
+                    v[i] = b[i] - song[i];
+                    sum += Math.abs(v[i]);
+                }
+
+                sum /= v.length;
+
+                if (sum < 1e-6) {
+                    sum = 1e-6;
+                }
+
+                let weight = Math.exp(-5 * sum);
+
+                for (let i = 0; i < v.length; ++i) {
+                    vsum[i] -= v[i] * weight;
+                }
+            });
+
+            let learningRate = 0.01 / (1 + iteration * 0.1);
+
+            for (let i = 0; i < song.length; ++i) {
+                song[i] += learningRate * vsum[i] / bads.length;
+                song[i] += 0.001 * (___random() - 0.5);
+            }
+        }
+    }
+
+    for (let i = 0; i < song.length; ++i) {
+        song[i] = clamp(song[i]);
+    }
+
+    randomi = 0;
+    randoms = song.slice();
+    document.getElementById("bads").innerHTML = bads.length;
+    console.log("Optimized song: ", song[0]);
+}
+
+
+
+/*
+function rategood() {
+	goods.push(randoms.slice())
+	document.getElementById("rate").style.visibility = "hidden"
+}
+*/
+
+let playingrandoms;
+
+function ratebad() {
+	bads.push(playingrandoms.slice())
+	document.getElementById("rate").style.visibility = "hidden"
+	source.stop()
+}
+
+var scale = new Array(18);
+
+function rand(n) {
+return Math.floor(n * Math.random() * 0.99);
+}	
+	
+function shuffle(xs) {
+xs = xs.slice(0);
+
+var ys = [];
+
+while(xs.length > 0) {
+var i = rand(xs.length);
+ys.push(xs[i]);
+xs.splice(i,1);
+}
+
+return ys;
+}
+
+
+
+
+class Instrument {
+
+//per instrument
+constructor(tone,cvName,waveFunction) {
+	this.tone = tone
+
+	let leftVol = Math.random();
+	this.chVols = [leftVol,1.0 - leftVol];
+
+	this.rands = new Float32Array(2560);
+	for(let i = 0;i < this.rands.length;++i) this.rands[i] = Math.random();
+	this.wave = waveFunction
+	
+	if(cvName) {
+		let xs = this.wave(audioCtx.sampleRate,0,this.rands,0.25);
+		console.log(this.rands[0] + " " + this.rands[1] + " " + this.rands[2])
+		let cv = document.getElementById(cvName);
+		console.log(cv);
+		let ctx = cv.getContext("2d");
+		ctx.fillStyle = "black";
+		ctx.fillRect(0,0,cv.width,cv.height);
+		ctx.strokeStyle = "white";
+		ctx.beginPath();
+		ctx.lineWidth = 1
+		ctx.moveTo(0,0);
+		for(let i = 0;i < xs.length;++i) ctx.lineTo(cv.width * i / xs.length,cv.height * (xs[i] + 1) / 2);
+		ctx.stroke();
+	}
+}
+
+//per tone
+render(buffer,offset,tone,duration,vol) {
+	const n = rand(1024);
+	const channels = 2;
+	for(var channel = 0; channel < channels; channel++) {
+	var nowBuffering = buffer.getChannelData(channel);
+	var xs = this.wave(audioCtx.sampleRate,this.tone + tone,this.rands,duration);
+	for(let i = 0;i < xs.length;++i) if(i + offset + n < nowBuffering.length) nowBuffering[i + offset + n] += xs[i] * 0.1 * vol * this.chVols[channel];
+}	
+}
+}   
+
+
+function sc2scale(sc,x0) {
+	let scale = [x0]
+	for(let i = 0;i < sc.length;++i) scale.push(scale[i] + sc[i]);
+	return scale
+}
+
+
+let sc = [2,2,1,2,2,2,1]
+
+
+
+function makeScale() {
+
+sc = [2,2,1,2,2,2,1]
+let n = rand(sc.length)
+for(let i = 0;i < n;++i) sc.unshift(sc.pop())
+sc = sc.concat(sc)
+
+scale = sc2scale(sc,rand(12) - 6)
+document.getElementById("scale").innerHTML = "[" + scale + "]";
+}
+
+class Melody {
+	constructor(stepSize,instrument) {
+		this.stepSize = stepSize;
+		this.instrument = instrument;
+		this.index = 0;
+		this.i = 0;
+		this.min = rand(scale.length);
+		this.max = rand(scale.length);
+		this.r = Math.random();
+		this.r2 = Math.random();
+		this.note = 0;
+		this.makeMelodyI = 0;
+		this.makeMelody()
+	}
+
+	makeMelody() {
+		this.pauseProb = (1 - ((this.makeMelodyI % 32) / 32)) * 0.8
+		this.randomProb = Math.random() * ( 1 - this.pauseProb)
+		this.repeatProb = Math.random() * ( 1 - this.pauseProb)
+		this.toneUpProb = Math.random() * ( 1 - this.pauseProb)
+		this.toneDownProb = Math.random() * ( 1 - this.pauseProb)
+		this.min = rand(scale.length);
+		this.max = rand(scale.length);	
+		if(this.min > this.max) {
+			let swp = this.min 
+			this.min = this.max
+			this.max = swp
+		}
+		this.vs = []
+		for(let i = 0;i < 8;++i) this.vs.push(1)
+		this.makeMelodyI += 1
+	}
+
+	play(buffer,offset) {
+		let i = this.i % this.vs.length;
+
+		if(this.i % (this.vs.length * 4) == 0) this.makeMelody()
+			
+		let duration = Math.random()
+		
+		let prob =  (this.pauseProb + this.randomProb + this.repeatProb + this.toneUpProb + this.toneDownProb) * Math.random()
+
+		if(prob > 0 && prob < this.pauseProb) {
+		}
+		prob -= this.pauseProb
+
+		if(prob > 0 && prob < this.randomProb) {
+				this.note = this.min + rand(this.max -  this.min);
+				this.instrument.render(buffer,offset,scale[this.note],duration,this.vs[i]);
+		}
+		prob -= this.randomProb
+
+		if(prob > 0 && prob < this.repeatProb) {
+				this.instrument.render(buffer,offset,scale[this.note],duration,this.vs[i]);
+		}
+		prob -= this.repeatProb
+
+		if(prob > 0 && prob < this.toneUpProb) {
+				this.note += 1
+				if(this.note > this.max) this.note = this.min + rand(this.max -  this.min);
+				this.instrument.render(buffer,offset,scale[this.note],duration,this.vs[i]);
+		}
+		prob -= this.toneUpProb
+
+		if(prob > 0 && prob < this.toneDownProb) {
+				this.note -= 1
+				if(this.note < this.min) this.note = this.min + rand(this.max -  this.min);
+				this.instrument.render(buffer,offset,scale[this.note],duration,this.vs[i]);
+		}
+		prob -= this.toneDownProb
+			
+		this.i += 1;
+	}
+}
+
+var audioCtx
+var channels = 2;
+var seconds = 60;
+var frameCount
+seconds = 120 //parseInt(document.getElementById("sec").value);
+let bl = null;
+var myArrayBuffer;
+var ms;
+var source;
+var playing = false
+var computing = true
+var taken = true
+var gainNode
+
+
+async function play() {
+    if(!computing && !playing) {
+        source = audioCtx.createBufferSource();
+        source.buffer = myArrayBuffer;
+        source.onended = () => {
+            playing = false
+        };
+        gainNode = audioCtx.createGain();          // Create a gain node
+        gainNode.connect(audioCtx.destination);        // Connect the gain node to the destination
+        gainNode.gain.value = 1.0;     
+        //  document.getElementById("debug").innerHTML = source + " / " + audioCtx
+          
+        source.connect(gainNode);                     // Connect the source to the gain node
+        //playingrandoms = randoms.slice()
+        document.getElementById("cscale").innerHTML = document.getElementById("scale").innerHTML;
+        document.getElementById("cv2").src = document.getElementById("cv1").toDataURL();
+        document.getElementById("cv22").src = document.getElementById("cv11").toDataURL();
+        document.getElementById("cv222").src = document.getElementById("cv111").toDataURL();
+        //document.getElementById("rate").style.visibility = "visible"
+        source.start()
+        playing = true    
+        taken = true
+    }
+    
+    window.setTimeout(play,100)
+}
+
+function make() {
+    if(taken) {
+        frameCount = audioCtx.sampleRate * seconds
+        myArrayBuffer = audioCtx.createBuffer(channels, frameCount, audioCtx.sampleRate);
+        speed = 0.175 + Math.random() * 0.11
+        makeScale();
+        ms = [];
+
+        //Begleitung
+    	for(let i = 0;i < 3;++i) {
+        ins = new Instrument(-12,"cv1",wave);
+        
+	        ms.push(new Melody(2,ins));
+        }
+
+        //Sound
+    		for( let i = 0; i < 3;++i) {
+        ins = new Instrument(0,"cv11",wave);
+        
+	        ms.push(new Melody(1,ins));
+        }
+
+        //Bongos
+    			for(let i = 0;i < 3;++i) {
+        ins = new Instrument(0,"cv111",bongo);
+     
+	        ms.push(new Melody(1,ins));
+        }
+        
+        taken = false
+    }
+    
+    var sum = 0;
+    ms.forEach((m) => {sum += m.i});
+    var perc = sum * 100 / frameCount / ms.length;
+    document.getElementById("abc").innerHTML = perc + "%";
+
+    if(perc < 100) {
+        computing = true
+        
+        // 1 Takte
+        for(let k = 0;k < 4;++k) {
+            ms.forEach((m,j) => {
+                if(m.i < frameCount) {
+                    m.play(myArrayBuffer,m.i);
+                    m.i += Math.round(speed * m.stepSize * audioCtx.sampleRate);
+                } else 
+                    m.i = frameCount;
+            });
+        }
+    } else {
+        computing = false
+    }
+    
+    window.setTimeout(make,10)
+}
+
+var speed;
+let waveGPU
+let bongoGPU
+
+async function sound() {
+    audioCtx = new (window.AudioContext || window.webkitAudioContext)()
+    await audioCtx.resume()
+    
+	waveGPU = gpu.createKernel(function(len,tone,rands,duration) {		
+		let omega = (((440.0 * this.thread.x) / len) * Math.pow(2.0,(tone) / 12.0)) * Math.PI;
+			
+		let a = 0	
+		let j = 0
+		let n = 7 * rands[0] + 1
+		for(let i = 1;i <= n;++i) {
+			let b = 0
+			let vibrato = Math.sin(omega /64 * rands[++j]) * rands[++j]
+			let vibrato2 = Math.sin(omega/64 * rands[++j]) * rands[++j]
+			let vibrato3 = Math.sin(omega/64 * rands[++j]) * rands[++j]
+			let r0 = rands[++j]
+			let r1 = rands[++j]
+			let r2 = rands[++j]
+			b += r0 * mypow(Math.sin((omega * i + vibrato)+rands[++j]),rands[++j] < 0.5 ? rands[++j] : 1 / rands[++j]);
+			b += r1 * Math.sign(Math.sin(omega * i + vibrato2+rands[++j]));
+		b += r2 * sawtooth(omega * i + vibrato3 + rands[++j])
+		//	a += rands[++j] / i * b / (r0 + r1 + r2)
+				a += b * rands[j++]
+				
+		}
+		//a *= Math.atan(this.thread.x / len * 50 * rands[++j]) + Math.PI / 2
+		a *= Math.atan(-(4 + 80 * rands[++j]) * (this.thread.x / len - duration)) + Math.PI / 2
+		
+		return a
+ 	}).setOutput([audioCtx.sampleRate / 2]); // over 1 second
+
+	bongoGPU = gpu.createKernel(function(len,tone,rands,duration) {		
+		let omega = (((440.0 * this.thread.x) / len) * Math.pow(2.0,(tone - 12) / 12.0)) * Math.PI;
+			
+		let a = 0	
+		let j = 0
+		let n = 7 * rands[0] + 1
+		for(let i = 1;i <= n;++i) {
+			let b = 0
+			let vibrato = 10 * rands[++j]
+			let r0 = rands[++j]
+			let r1 = rands[++j]
+			let r2 = rands[++j]
+			b += r0 * mypow(Math.sin(omega * i + vibrato),rands[++j] < 0.5 ? rands[++j] : 1 / rands[++j]);
+			b += r1 * Math.sign(Math.sin(omega * i + vibrato));
+			b += r2 * sawtooth(omega * i + vibrato);
+		//	a += rands[++j] / i * b / (r0 + r1 + r2)
+				a += rands[++j] * b
+				
+		}
+		
+		a *= (Math.atan(-(4 + 80 * rands[++j]) * (this.thread.x / len - duration * 0.5)) + Math.PI / 2) / Math.PI
+		
+		let omega2 = (5.0 + 10 * rands[++j]) * this.thread.x / len * Math.PI;
+		return ((Math.cos(omega2) + 1) / 2 + rands[++j]) * a
+ 	}).setOutput([audioCtx.sampleRate / 2]); // over 1 second
+ 	
+ 	make()
+ 	play()
+} 
+
+
+
+	let normalize = function(xs) {
+		var min = 1000000;
+		var max = -1000000;
+		for(let i = 0;i < xs.length;++i) if(xs[i] > max) max = xs[i]; else if(xs[i] < min) min = xs[i];
+		var a = Math.max(Math.abs(max),Math.abs(min));
+		for(let i = 0;i < xs.length;++i) xs[i] = 2 * (xs[i] - min) / (max - min) - 1;
+		return xs;
+	};
+
+    const gpu = initGPU();
+    
+	gpu.addFunction(mypow)
+	
+	gpu.addFunction(function sawtooth(x) {
+	  let y = x / Math.PI * 2;
+	  return 2 * (y - Math.floor(y)) - 1;
+	});
+		
+	
+	let bongo = function(len,tone,rands,duration) {
+		let xs = bongoGPU(len,tone,rands,duration)
+		
+		return normalize(xs);
+	}
+	
+	let wave = function(len,tone,rands,duration) {
+		let xs = waveGPU(len,tone,rands,duration)
+		
+		return normalize(xs);
+	}
+
+
+
+
+
+</script>
+
+
+
+
+
+
+<div id="debug"></div>
+<h1>Progress : <span id="abc"></span></h1>
+
+<button onclick="this.style.visibility='hidden';sound()" style='width:25%;height:25%;font-size:3em;position:absolute;'>Sound</button>
+<button onclick="if(source) source.stop()" style='width:25%;height:25%;font-size:3em'>Next please</button>
+<button onclick="gainNode.gain.value = 1 - gainNode.gain.value" style='width:25%;height:25%;font-size:3em'>Mute</button>
+
+<span style="color:white;font-size:3em">
+Seconds : 
+<select id="sec" style="font-size:2em">
+<option value="30" >30</option>
+<option value="60" >60</option>
+<option value="120" selected >120</option>
+<option value="180">180</option>
+</select>
+</span>
+<!--
+Fancy Random : <input type="checkbox" id="fr">
+-->
+<fieldset>
+<legend>Upcoming Data</legend>
+<br>
+scale : <span id="scale"></span>
+<br>
+<canvas width=800 height=800 style="width:30%;height:200px" id="cv1"></canvas>
+<canvas width=800 height=800 style="width:30%;height:200px" id="cv11"></canvas>
+<canvas width=800 height=800 style="width:30%;height:200px" id="cv111"></canvas>
+</fieldset>
+
+
+<fieldset>
+<legend>Current Data</legend>
+<!--<fieldset id="rate" style="visibility:hidden">
+<legend>
+Rate this song
+</legend>
+<button onclick="ratebad()"  style='width:25%;height:25%;font-size:3em'>bad</button>
+<button onclick="rategood()"  style='width:25%;height:25%;font-size:3em'>GOOD</button>
+</fieldset>-->
+<br>
+scale : <span id="cscale"></span>
+<br>
+<img width=800 height=800 style="width:30%;height:200px" id="cv2"></canvas>
+<img width=800 height=800 style="width:30%;height:200px" id="cv22"></canvas>
+<img width=800 height=800 style="width:30%;height:200px" id="cv222"></canvas>
+</fieldset>
+<!--<fieldset><legend>number of bad songs</legend><span id="bads"></span></fieldset>
+<fieldset><legend>number of good songs</legend><span id="goods"></span></fieldset>-->
+
+</body>
+</html>
+
+
+
